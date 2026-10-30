@@ -3,3 +3,8 @@ flutter_launcher_icons:
   ios: true
   image_path: "assets/logo_sema.png"
   min_sdk_android: 21
+  web:
+    generate: true
+    image_path: "assets/logo_sema.png"
+    background_color: "#0F172A"
+    theme_color: "#F59E0B"

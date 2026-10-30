@@ -2,7 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 
+import 'auth_admin.dart';
+import 'dialog_admin.dart';
+import 'dialog_ormawa.dart';
+import 'kalender_tahunan.dart';
+import 'layanan_agenda.dart';
+import 'layanan_ormawa.dart';
 import 'model_agenda.dart';
+import 'model_ormawa.dart';
 import 'pemilih_warna.dart';
 import 'pengaturan_warna.dart';
 
@@ -24,48 +31,18 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
   CalendarFormat _calendarFormat = CalendarFormat.month;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
-  KategoriOrmawa? _selectedFilter;
+  String? _filterOrmawaId;
 
-  // Penyimpanan dinamis untuk Nama & Warna tiap Ormawa
-  late final Map<KategoriOrmawa, String> _labelOrmawa;
-  late final Map<KategoriOrmawa, Color> _warnaOrmawa;
+  final LayananAgenda _layananAgenda = LayananAgenda();
+  final LayananOrmawa _layananOrmawa = LayananOrmawa();
+  final AuthAdmin _authAdmin = AuthAdmin();
 
-  final PenyimpananPengaturan _penyimpanan = PenyimpananPengaturan();
-
-  final List<AgendaAcara> _semuaAgenda = [
-    AgendaAcara(
-      id: '1',
-      judul: 'Sidang Pleno Kemahasiswaan',
-      deskripsi: 'Evaluasi program kerja dan anggaran ormawa triwulan berjalan',
-      waktu: DateTime.now(),
-      lokasi: 'Ruang Sidang Utama',
-      ormawa: KategoriOrmawa.senat,
-    ),
-    AgendaAcara(
-      id: '2',
-      judul: 'Pekan Raya & Kreativitas BEM',
-      deskripsi: 'Gebyar pameran inovasi dan bazar mahasiswa kampus',
-      waktu: DateTime.now(),
-      lokasi: 'Lapangan Utama Kampus',
-      ormawa: KategoriOrmawa.bem,
-    ),
-    AgendaAcara(
-      id: '3',
-      judul: 'Kajian Manajemen & Kepemimpinan',
-      deskripsi: 'Diskusi strategi manajemen SDM era transformasi digital',
-      waktu: DateTime.now().add(const Duration(days: 1)),
-      lokasi: 'Auditorium Gedung B',
-      ormawa: KategoriOrmawa.hmpsMn,
-    ),
-    AgendaAcara(
-      id: '4',
-      judul: 'Turnamen Futsal & Badminton',
-      deskripsi: 'Kompetisi olahraga persahabatan antar program studi',
-      waktu: DateTime.now().add(const Duration(days: 2)),
-      lokasi: 'GOR Kampus',
-      ormawa: KategoriOrmawa.ukm1,
-    ),
-  ];
+  List<Ormawa> _daftarOrmawa = List.of(ormawaBawaan);
+  List<AgendaAcara> _semuaAgenda = const [];
+  bool _memuatAgenda = true;
+  bool _sedangMenyinkron = false;
+  bool _modeAdmin = false;
+  String? _galatSinkron;
 
   PengaturanWarna get _tema => widget.tema;
 
@@ -73,54 +50,416 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
   void initState() {
     super.initState();
     _selectedDay = _focusedDay;
-    _labelOrmawa = {
-      for (final item in KategoriOrmawa.values) item: item.namaDefault,
-    };
-    _warnaOrmawa = {
-      for (final item in KategoriOrmawa.values) item: item.warnaDefault,
-    };
-    _muatKustomisasiOrmawa();
+    _muatOrmawa();
+    _muatAgenda();
   }
 
-  Future<void> _muatKustomisasiOrmawa() async {
-    final data = await _penyimpanan.muatOrmawa();
-    if (data == null || !mounted) return;
+  Future<void> _muatAgenda({bool tampilkanPesan = false}) async {
+    if (_sedangMenyinkron) return;
 
     setState(() {
-      for (final org in KategoriOrmawa.values) {
-        final entri = data[org.id];
-        if (entri == null) continue;
+      _sedangMenyinkron = true;
+      _memuatAgenda = _semuaAgenda.isEmpty;
+      _galatSinkron = null;
+    });
 
-        final nama = entri['nama'];
-        final warna = entri['warna'];
-        if (nama is String && nama.trim().isNotEmpty) {
-          _labelOrmawa[org] = nama;
-        }
-        if (warna is int) {
-          _warnaOrmawa[org] = Color(warna);
-        }
-      }
+    final hasil = await _layananAgenda.muatAgenda();
+    if (!mounted) return;
+
+    setState(() {
+      _semuaAgenda = hasil.daftar;
+      _memuatAgenda = false;
+      _sedangMenyinkron = false;
+      _galatSinkron = hasil.galat;
+    });
+
+    if (tampilkanPesan) {
+      _tampilkanPesan(
+        hasil.galat ?? 'Agenda berhasil diperbarui dari server.',
+        berhasil: hasil.galat == null,
+      );
+    }
+  }
+
+  Future<void> _simpanAgendaKeServer(AgendaAcara agenda) async {
+    final hasil = await _layananAgenda.simpanAgenda(
+      agenda,
+      List.of(_semuaAgenda),
+    );
+    if (!mounted) return;
+
+    setState(() => _galatSinkron = hasil.berhasil ? null : hasil.pesan);
+    _tampilkanPesan(hasil.pesan, berhasil: hasil.berhasil);
+  }
+
+  Future<void> _hapusAgendaDiServer(String id) async {
+    final hasil = await _layananAgenda.hapusAgenda(id, List.of(_semuaAgenda));
+    if (!mounted) return;
+
+    setState(() => _galatSinkron = hasil.berhasil ? null : hasil.pesan);
+    _tampilkanPesan(hasil.pesan, berhasil: hasil.berhasil);
+  }
+
+  void _tampilkanPesan(String pesan, {bool berhasil = true}) {
+    if (!mounted) return;
+
+    final warna = berhasil ? _tema.aksen : Colors.orangeAccent;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            pesan,
+            style: const TextStyle(color: Colors.white, fontSize: 13),
+          ),
+          backgroundColor: _tema.kartu,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 4),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: warna.withValues(alpha: 0.7)),
+          ),
+        ),
+      );
+  }
+
+  Future<void> _muatOrmawa() async {
+    final hasil = await _layananOrmawa.muatOrmawa();
+    if (!mounted) return;
+
+    setState(() {
+      _daftarOrmawa = hasil.daftar;
+      if (hasil.galat != null) _galatSinkron = hasil.galat;
     });
   }
 
-  void _simpanKustomisasiOrmawa() {
-    _penyimpanan.simpanOrmawa({
-      for (final org in KategoriOrmawa.values)
-        org.id: {'nama': _getNama(org), 'warna': _getWarna(org).toARGB32()},
-    });
+  Ormawa _ormawaUntuk(String id) {
+    for (final ormawa in _daftarOrmawa) {
+      if (ormawa.id == id) return ormawa;
+    }
+    return ormawaCadangan(id);
   }
 
-  String _getNama(KategoriOrmawa org) => _labelOrmawa[org] ?? org.namaDefault;
-  Color _getWarna(KategoriOrmawa org) => _warnaOrmawa[org] ?? org.warnaDefault;
+  Future<void> _simpanOrmawa(Ormawa ormawa) async {
+    final daftarBaru = List<Ormawa>.of(_daftarOrmawa);
+    final indeks = daftarBaru.indexWhere((item) => item.id == ormawa.id);
+    if (indeks >= 0) {
+      daftarBaru[indeks] = ormawa;
+    } else {
+      daftarBaru.add(ormawa);
+    }
+
+    setState(() => _daftarOrmawa = daftarBaru);
+
+    final hasil = await _layananOrmawa.simpanOrmawa(ormawa, daftarBaru);
+    if (!mounted) return;
+
+    setState(() => _galatSinkron = hasil.berhasil ? null : hasil.pesan);
+    _tampilkanPesan(hasil.pesan, berhasil: hasil.berhasil);
+  }
+
+  Future<void> _hapusOrmawa(Ormawa ormawa) async {
+    final daftarBaru = _daftarOrmawa
+        .where((item) => item.id != ormawa.id)
+        .toList();
+
+    setState(() {
+      _daftarOrmawa = daftarBaru;
+      _semuaAgenda = _semuaAgenda
+          .where((agenda) => agenda.ormawaId != ormawa.id)
+          .toList();
+      if (_filterOrmawaId == ormawa.id) _filterOrmawaId = null;
+    });
+
+    await _layananAgenda.simpanSalinanLokal(_semuaAgenda);
+    final hasil = await _layananOrmawa.hapusOrmawa(ormawa.id, daftarBaru);
+    if (!mounted) return;
+
+    setState(() => _galatSinkron = hasil.berhasil ? null : hasil.pesan);
+    _tampilkanPesan(hasil.pesan, berhasil: hasil.berhasil);
+
+    if (hasil.berhasil) _muatAgenda();
+  }
 
   List<AgendaAcara> _getAgendasForDay(DateTime day) {
     return _semuaAgenda.where((agenda) {
       final isSameDate = isSameDay(agenda.waktu, day);
-      if (_selectedFilter != null) {
-        return isSameDate && agenda.ormawa == _selectedFilter;
+      if (_filterOrmawaId != null) {
+        return isSameDate && agenda.ormawaId == _filterOrmawaId;
       }
       return isSameDate;
     }).toList();
+  }
+
+  Future<void> _bukaKalenderTahunan() async {
+    final tanggalTerpilih = _selectedDay ?? _focusedDay;
+    final hasil = await tampilkanKalenderTahunan(
+      context,
+      tema: _tema,
+      tanggalTerpilih: tanggalTerpilih,
+      hariIni: DateTime.now(),
+      tanggalBeragenda: {for (final agenda in _semuaAgenda) agenda.tanggalIso},
+    );
+    if (hasil == null || !mounted) return;
+
+    setState(() {
+      _selectedDay = hasil;
+      _focusedDay = hasil;
+    });
+  }
+
+  Future<void> _bukaDialogOrmawa({
+    Ormawa? awal,
+    required VoidCallback onUpdated,
+  }) async {
+    final hasil = await showDialog<Ormawa>(
+      context: context,
+      builder: (ctx) => DialogOrmawa(tema: _tema, awal: awal),
+    );
+    if (hasil == null || !mounted) return;
+
+    final sinkron = _simpanOrmawa(hasil);
+    onUpdated();
+    await sinkron;
+  }
+
+  Future<void> _konfirmasiHapusOrmawa(
+    Ormawa ormawa,
+    VoidCallback onUpdated,
+  ) async {
+    final setuju = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: _tema.kartu,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        title: Text(
+          'Hapus ${ormawa.nama}?',
+          style: const TextStyle(color: Colors.white, fontSize: 17),
+        ),
+        content: Text(
+          'Semua agenda dari ormawa ini juga akan dihapus di semua perangkat. '
+          'Tindakan ini tidak dapat dibatalkan.',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Batal', style: TextStyle(color: Colors.white60)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+    if (setuju != true) return;
+
+    final hapus = _hapusOrmawa(ormawa);
+    onUpdated();
+    await hapus;
+  }
+
+  // Mode admin: masuk, panel pengaturan, ubah sandi, dan keluar.
+  Future<void> _bukaMenuAdmin() async {
+    if (_modeAdmin) {
+      _bukaPanelAdmin();
+      return;
+    }
+
+    final berhasil = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => DialogMasukAdmin(authAdmin: _authAdmin, tema: _tema),
+    );
+    if (berhasil == true && mounted) {
+      setState(() => _modeAdmin = true);
+      _tampilkanPesan(
+        'Mode admin aktif. Anda sekarang dapat menambah dan mengubah agenda.',
+      );
+    }
+  }
+
+  void _bukaPanelAdmin() {
+    final tema = _tema;
+
+    showDialog<void>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: tema.kartu,
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 24,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(
+              color: tema.aksen.withValues(alpha: 0.6),
+              width: 1.5,
+            ),
+          ),
+          title: Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: tema.aksen.withValues(alpha: 0.18),
+                radius: 18,
+                child: Icon(
+                  Icons.admin_panel_settings_rounded,
+                  color: tema.aksen,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Mode Admin',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Anda masuk sebagai admin. Anggota lain hanya dapat melihat '
+                'jadwal tanpa perlu login.',
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
+              ),
+              const SizedBox(height: 14),
+              _barisMenuAdmin(
+                ctx,
+                tema,
+                ikon: Icons.password_rounded,
+                judul: 'Ubah Password Admin',
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _bukaDialogUbahSandi();
+                },
+              ),
+              _barisMenuAdmin(
+                ctx,
+                tema,
+                ikon: Icons.sync_rounded,
+                judul: 'Sinkronkan Agenda Sekarang',
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _muatAgenda(tampilkanPesan: true);
+                },
+              ),
+              _barisMenuAdmin(
+                ctx,
+                tema,
+                ikon: Icons.logout_rounded,
+                judul: 'Keluar Mode Admin',
+                warna: Colors.orangeAccent,
+                onTap: () {
+                  Navigator.pop(ctx);
+                  setState(() => _modeAdmin = false);
+                  _tampilkanPesan('Anda keluar dari mode admin.');
+                },
+              ),
+              if (_galatSinkron != null) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.orangeAccent.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: Colors.orangeAccent.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  child: Text(
+                    _galatSinkron!,
+                    style: const TextStyle(
+                      color: Colors.orangeAccent,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: tema.aksen,
+                foregroundColor: tema.latar1,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text(
+                'Tutup',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _barisMenuAdmin(
+    BuildContext ctx,
+    PengaturanWarna tema, {
+    required IconData ikon,
+    required String judul,
+    required VoidCallback onTap,
+    Color? warna,
+  }) {
+    final c = warna ?? tema.aksen;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.black26,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: c.withValues(alpha: 0.4)),
+        ),
+        child: Row(
+          children: [
+            Icon(ikon, color: c, size: 18),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                judul,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: c, size: 18),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _bukaDialogUbahSandi() async {
+    final berhasil = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => DialogUbahSandi(authAdmin: _authAdmin, tema: _tema),
+    );
+    if (berhasil == true && mounted) {
+      _tampilkanPesan('Password admin berhasil diubah.');
+    }
   }
 
   // Modal Pengaturan Tema, Nama & Warna Organisasi
@@ -172,11 +511,11 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
                           child: Icon(Icons.palette_rounded, color: tema.aksen),
                         ),
                         const SizedBox(width: 12),
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
+                              const Text(
                                 'Kustomisasi Tampilan',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
@@ -185,8 +524,10 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
                                 ),
                               ),
                               Text(
-                                'Atur tema aplikasi serta nama dan warna tiap ormawa',
-                                style: TextStyle(
+                                _modeAdmin
+                                    ? 'Atur tema aplikasi serta nama dan warna tiap ormawa'
+                                    : 'Atur tema aplikasi. Nama dan warna ormawa hanya bisa diubah admin.',
+                                style: const TextStyle(
                                   fontSize: 12,
                                   color: Colors.white60,
                                 ),
@@ -201,7 +542,7 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
                   Expanded(
                     child: ListView.builder(
                       padding: const EdgeInsets.all(14),
-                      itemCount: KategoriOrmawa.values.length + 1,
+                      itemCount: _modeAdmin ? _daftarOrmawa.length + 2 : 1,
                       itemBuilder: (context, index) {
                         if (index == 0) {
                           return _kartuTema(
@@ -211,9 +552,15 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
                           );
                         }
 
-                        final org = KategoriOrmawa.values[index - 1];
-                        final warna = _getWarna(org);
-                        final nama = _getNama(org);
+                        if (index == 1) {
+                          return _kartuTambahOrmawa(
+                            tema,
+                            () => setSheetState(() {}),
+                          );
+                        }
+
+                        final org = _daftarOrmawa[index - 2];
+                        final warna = org.warna;
 
                         return Container(
                           margin: const EdgeInsets.only(bottom: 10),
@@ -228,9 +575,11 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
                           child: Material(
                             type: MaterialType.transparency,
                             child: ListTile(
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 4,
+                              contentPadding: const EdgeInsets.fromLTRB(
+                                14,
+                                4,
+                                8,
+                                4,
                               ),
                               leading: Container(
                                 width: 42,
@@ -253,7 +602,9 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
                                 ),
                               ),
                               title: Text(
-                                nama,
+                                org.nama,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white,
@@ -283,32 +634,29 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
                                   ),
                                 ],
                               ),
-                              trailing: ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: warna,
-                                  foregroundColor: Colors.white,
-                                  elevation: 0,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 8,
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  _tombolAksiOrmawa(
+                                    ikon: Icons.edit_rounded,
+                                    tooltip: 'Ubah ormawa',
+                                    warna: warna,
+                                    onTap: () => _bukaDialogOrmawa(
+                                      awal: org,
+                                      onUpdated: () => setSheetState(() {}),
+                                    ),
                                   ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
+                                  const SizedBox(width: 2),
+                                  _tombolAksiOrmawa(
+                                    ikon: Icons.delete_outline_rounded,
+                                    tooltip: 'Hapus ormawa',
+                                    warna: Colors.redAccent,
+                                    onTap: () => _konfirmasiHapusOrmawa(
+                                      org,
+                                      () => setSheetState(() {}),
+                                    ),
                                   ),
-                                ),
-                                icon: const Icon(Icons.edit_rounded, size: 16),
-                                label: const Text(
-                                  'Ubah',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                onPressed: () {
-                                  _dialogEditSatuOrmawa(org, () {
-                                    setSheetState(() {});
-                                  });
-                                },
+                                ],
                               ),
                             ),
                           ),
@@ -685,230 +1033,87 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
     );
   }
 
-  void _dialogEditSatuOrmawa(KategoriOrmawa org, VoidCallback onUpdated) {
-    final textCtrl = TextEditingController(text: _getNama(org));
-    Color warnaSementara = _getWarna(org);
-    final tema = _tema;
+  Widget _kartuTambahOrmawa(PengaturanWarna tema, VoidCallback onUpdated) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: tema.aksen.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: tema.aksen.withValues(alpha: 0.5),
+          width: 1.2,
+        ),
+      ),
+      child: Material(
+        type: MaterialType.transparency,
+        child: ListTile(
+          onTap: () => _bukaDialogOrmawa(onUpdated: onUpdated),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 2,
+          ),
+          leading: Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: tema.aksen.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(Icons.add_rounded, color: tema.aksen, size: 24),
+          ),
+          title: const Text(
+            'Tambah Ormawa / UKM / UKK',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+              fontSize: 14,
+            ),
+          ),
+          subtitle: const Text(
+            'Buat organisasi baru',
+            style: TextStyle(color: Colors.white54, fontSize: 11),
+          ),
+          trailing: Icon(Icons.chevron_right_rounded, color: tema.aksen),
+        ),
+      ),
+    );
+  }
 
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (ctx, setDialogState) {
-            return AlertDialog(
-              backgroundColor: tema.kartu,
-              insetPadding: const EdgeInsets.symmetric(
-                horizontal: 24,
-                vertical: 24,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-                side: BorderSide(
-                  color: warnaSementara.withValues(alpha: 0.6),
-                  width: 1.5,
-                ),
-              ),
-              title: Row(
-                children: [
-                  CircleAvatar(
-                    backgroundColor: warnaSementara,
-                    radius: 14,
-                    child: Icon(org.ikon, size: 16, color: Colors.white),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'Edit ${org.kategori}',
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    TextField(
-                      controller: textCtrl,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: InputDecoration(
-                        labelText: 'Nama Organisasi / UKM',
-                        labelStyle: const TextStyle(color: Colors.white70),
-                        filled: true,
-                        fillColor: Colors.black26,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: warnaSementara,
-                            width: 2,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    const Text(
-                      'Pilih Warna Identitas:',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                        color: Colors.white70,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Container(
-                          width: 34,
-                          height: 34,
-                          decoration: BoxDecoration(
-                            color: warnaSementara,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white24),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            formatKodeHex(warnaSementara),
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 12,
-                              letterSpacing: 0.8,
-                            ),
-                          ),
-                        ),
-                        OutlinedButton.icon(
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: warnaSementara,
-                            side: BorderSide(
-                              color: warnaSementara.withValues(alpha: 0.7),
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 8,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          icon: const Icon(Icons.colorize_rounded, size: 16),
-                          label: const Text(
-                            'Warna Bebas',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          onPressed: () async {
-                            final hasil = await tampilkanPemilihWarna(
-                              ctx,
-                              warnaAwal: warnaSementara,
-                              warnaKartu: tema.kartu,
-                              judul: 'Warna ${_getNama(org)}',
-                            );
-                            if (hasil != null) {
-                              setDialogState(() => warnaSementara = hasil);
-                            }
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: paletWarnaCepat.map((c) {
-                        final isSelected =
-                            c.toARGB32() == warnaSementara.toARGB32();
-                        return GestureDetector(
-                          onTap: () => setDialogState(() => warnaSementara = c),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            width: 38,
-                            height: 38,
-                            decoration: BoxDecoration(
-                              color: c,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: isSelected
-                                    ? Colors.white
-                                    : Colors.transparent,
-                                width: 3,
-                              ),
-                              boxShadow: isSelected
-                                  ? [
-                                      BoxShadow(
-                                        color: c.withValues(alpha: 0.8),
-                                        blurRadius: 10,
-                                        spreadRadius: 1,
-                                      ),
-                                    ]
-                                  : [],
-                            ),
-                            child: isSelected
-                                ? const Icon(
-                                    Icons.check,
-                                    color: Colors.white,
-                                    size: 20,
-                                  )
-                                : null,
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text(
-                    'Batal',
-                    style: TextStyle(color: Colors.white60),
-                  ),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: warnaSementara,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      if (textCtrl.text.trim().isNotEmpty) {
-                        _labelOrmawa[org] = textCtrl.text.trim();
-                      }
-                      _warnaOrmawa[org] = warnaSementara;
-                    });
-                    _simpanKustomisasiOrmawa();
-                    onUpdated();
-                    Navigator.pop(ctx);
-                  },
-                  child: const Text(
-                    'Simpan Perubahan',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
+  Widget _tombolAksiOrmawa({
+    required IconData ikon,
+    required String tooltip,
+    required Color warna,
+    required VoidCallback onTap,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(9),
+        child: Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: warna.withValues(alpha: 0.14),
+            borderRadius: BorderRadius.circular(9),
+            border: Border.all(color: warna.withValues(alpha: 0.45)),
+          ),
+          child: Icon(ikon, size: 17, color: warna),
+        ),
+      ),
     );
   }
 
   // Modal Form Tambah / Edit Agenda Kegiatan
   void _bukaDialogFormAgenda({AgendaAcara? agendaUntukDiedit}) {
+    if (_daftarOrmawa.isEmpty) {
+      _tampilkanPesan(
+        'Belum ada ormawa. Tambahkan ormawa dulu lewat menu Tampilan.',
+        berhasil: false,
+      );
+      return;
+    }
+
     final formKey = GlobalKey<FormState>();
     final judulCtrl = TextEditingController(
       text: agendaUntukDiedit?.judul ?? '',
@@ -922,8 +1127,12 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
 
     DateTime tanggalTerpilih =
         agendaUntukDiedit?.waktu ?? (_selectedDay ?? DateTime.now());
-    KategoriOrmawa ormawaTerpilih =
-        agendaUntukDiedit?.ormawa ?? (_selectedFilter ?? KategoriOrmawa.senat);
+
+    var ormawaTerpilihId = agendaUntukDiedit?.ormawaId ?? _filterOrmawaId ?? '';
+    if (!_daftarOrmawa.any((org) => org.id == ormawaTerpilihId)) {
+      ormawaTerpilihId = _daftarOrmawa.first.id;
+    }
+
     final tema = _tema;
 
     showDialog(
@@ -931,7 +1140,7 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            final warnaAktif = _getWarna(ormawaTerpilih);
+            final warnaAktif = _ormawaUntuk(ormawaTerpilihId).warna;
             return AlertDialog(
               backgroundColor: tema.kartu,
               insetPadding: const EdgeInsets.symmetric(
@@ -961,8 +1170,9 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      DropdownButtonFormField<KategoriOrmawa>(
-                        initialValue: ormawaTerpilih,
+                      DropdownButtonFormField<String>(
+                        initialValue: ormawaTerpilihId,
+                        isExpanded: true,
                         dropdownColor: tema.latar2,
                         decoration: InputDecoration(
                           labelText: 'Penyelenggara / Ormawa',
@@ -972,10 +1182,10 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        items: KategoriOrmawa.values.map((org) {
-                          final c = _getWarna(org);
+                        items: _daftarOrmawa.map((org) {
+                          final c = org.warna;
                           return DropdownMenuItem(
-                            value: org,
+                            value: org.id,
                             child: Row(
                               children: [
                                 Container(
@@ -987,12 +1197,16 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
                                   ),
                                 ),
                                 const SizedBox(width: 10),
-                                Text(
-                                  _getNama(org),
-                                  style: TextStyle(
-                                    color: c,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13,
+                                Flexible(
+                                  child: Text(
+                                    org.nama,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: c,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -1001,7 +1215,7 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
                         }).toList(),
                         onChanged: (val) {
                           if (val != null) {
-                            setDialogState(() => ormawaTerpilih = val);
+                            setDialogState(() => ormawaTerpilihId = val);
                           }
                         },
                       ),
@@ -1110,29 +1324,35 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
                   ),
                   onPressed: () {
                     if (formKey.currentState?.validate() ?? false) {
+                      late AgendaAcara agendaTersimpan;
+
                       setState(() {
                         if (agendaUntukDiedit == null) {
-                          _semuaAgenda.add(
-                            AgendaAcara(
-                              id: DateTime.now().millisecondsSinceEpoch
-                                  .toString(),
-                              judul: judulCtrl.text.trim(),
-                              deskripsi: deskripsiCtrl.text.trim(),
-                              waktu: tanggalTerpilih,
-                              lokasi: lokasiCtrl.text.trim(),
-                              ormawa: ormawaTerpilih,
-                            ),
+                          agendaTersimpan = AgendaAcara(
+                            id: DateTime.now().microsecondsSinceEpoch
+                                .toString(),
+                            judul: judulCtrl.text.trim(),
+                            deskripsi: deskripsiCtrl.text.trim(),
+                            waktu: tanggalTerpilih,
+                            lokasi: lokasiCtrl.text.trim(),
+                            ormawaId: ormawaTerpilihId,
                           );
+                          _semuaAgenda.add(agendaTersimpan);
                         } else {
                           agendaUntukDiedit.judul = judulCtrl.text.trim();
                           agendaUntukDiedit.deskripsi = deskripsiCtrl.text
                               .trim();
                           agendaUntukDiedit.waktu = tanggalTerpilih;
                           agendaUntukDiedit.lokasi = lokasiCtrl.text.trim();
-                          agendaUntukDiedit.ormawa = ormawaTerpilih;
+                          agendaUntukDiedit.ormawaId = ormawaTerpilihId;
+                          agendaTersimpan = agendaUntukDiedit;
                         }
+                        _semuaAgenda.sort((a, b) => a.waktu.compareTo(b.waktu));
+                        _selectedDay = tanggalTerpilih;
+                        _focusedDay = tanggalTerpilih;
                       });
                       Navigator.pop(context);
+                      _simpanAgendaKeServer(agendaTersimpan);
                     }
                   },
                   child: Text(
@@ -1175,6 +1395,7 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
             onPressed: () {
               setState(() => _semuaAgenda.removeWhere((x) => x.id == item.id));
               Navigator.pop(ctx);
+              _hapusAgendaDiServer(item.id);
             },
             child: const Text('Hapus'),
           ),
@@ -1245,25 +1466,32 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
                   padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
                   child: Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [tema.aksen, tema.aksenGelap],
-                          ),
-                          borderRadius: BorderRadius.circular(14),
-                          boxShadow: [
-                            BoxShadow(
-                              color: tema.aksen.withValues(alpha: 0.35),
-                              blurRadius: 10,
-                              offset: const Offset(0, 3),
+                      // Ketuk logo untuk membuka kalender tahunan
+                      Tooltip(
+                        message: 'Kalender tahunan',
+                        child: GestureDetector(
+                          onTap: _bukaKalenderTahunan,
+                          child: Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [tema.aksen, tema.aksenGelap],
+                              ),
+                              borderRadius: BorderRadius.circular(14),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: tema.aksen.withValues(alpha: 0.35),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                        child: Icon(
-                          Icons.event_note_rounded,
-                          color: tema.latar1,
-                          size: 24,
+                            child: Icon(
+                              Icons.event_note_rounded,
+                              color: tema.latar1,
+                              size: 24,
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -1273,6 +1501,8 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
                           children: [
                             const Text(
                               'KALENDER ORMAWA',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 18,
@@ -1281,7 +1511,11 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
                               ),
                             ),
                             Text(
-                              'Senat • BEM • HMPS • 7 UKM • 2 UKK',
+                              _modeAdmin
+                                  ? 'Mode admin aktif'
+                                  : 'Senat • BEM • HMPS • 7 UKM • 2 UKK',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 color: tema.aksen,
                                 fontSize: 11,
@@ -1291,39 +1525,59 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
                           ],
                         ),
                       ),
-                      // Tombol Kustomisasi Tema, Nama & Warna
-                      InkWell(
-                        onTap: _bukaPanelKustomisasi,
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: tema.aksen.withValues(alpha: 0.5),
+                      // Tombol kustomisasi tampilan (tema bisa diubah semua
+                      // anggota; nama & warna ormawa hanya oleh admin)
+                      Tooltip(
+                        message: 'Kustomisasi tampilan',
+                        child: InkWell(
+                          onTap: _bukaPanelKustomisasi,
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.all(9),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: tema.aksen.withValues(alpha: 0.5),
+                              ),
+                            ),
+                            child: Icon(
+                              Icons.palette_outlined,
+                              color: tema.aksen,
+                              size: 18,
                             ),
                           ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.palette_outlined,
-                                color: tema.aksen,
-                                size: 18,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Tombol masuk / keluar mode admin
+                      Tooltip(
+                        message: _modeAdmin
+                            ? 'Pengaturan admin'
+                            : 'Masuk mode admin',
+                        child: InkWell(
+                          onTap: _bukaMenuAdmin,
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.all(9),
+                            decoration: BoxDecoration(
+                              color: _modeAdmin
+                                  ? tema.aksen
+                                  : Colors.white.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: _modeAdmin
+                                    ? Colors.white
+                                    : tema.aksen.withValues(alpha: 0.5),
                               ),
-                              const SizedBox(width: 6),
-                              const Text(
-                                'Tampilan',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
+                            ),
+                            child: Icon(
+                              _modeAdmin
+                                  ? Icons.lock_open_rounded
+                                  : Icons.lock_outline_rounded,
+                              color: _modeAdmin ? tema.latar1 : tema.aksen,
+                              size: 18,
+                            ),
                           ),
                         ),
                       ),
@@ -1333,6 +1587,55 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
 
                 // Baris Chip Organisasi Berwarna Jelas
                 _buildColoredFilterBar(tema),
+
+                // Pemberitahuan singkat jika sinkronisasi bermasalah
+                if (_galatSinkron != null)
+                  Container(
+                    margin: const EdgeInsets.fromLTRB(16, 0, 16, 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.orangeAccent.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: Colors.orangeAccent.withValues(alpha: 0.35),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.cloud_off_rounded,
+                          size: 14,
+                          color: Colors.orangeAccent,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _galatSinkron!,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.orangeAccent,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ),
+                        InkWell(
+                          onTap: () => _muatAgenda(tampilkanPesan: true),
+                          child: const Padding(
+                            padding: EdgeInsets.all(2),
+                            child: Icon(
+                              Icons.refresh_rounded,
+                              size: 14,
+                              color: Colors.orangeAccent,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
 
                 // Kalender Utama dengan Efek Kaca Gelap
                 Container(
@@ -1434,7 +1737,7 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
                         return Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: events.take(4).map((event) {
-                            final c = _getWarna(event.ormawa);
+                            final c = _ormawaUntuk(event.ormawaId).warna;
                             return Container(
                               margin: const EdgeInsets.symmetric(
                                 horizontal: 1.5,
@@ -1528,13 +1831,45 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
                           ),
                         ),
                       ),
+                      const SizedBox(width: 6),
+                      // Tombol sinkron manual (bisa dipakai semua anggota)
+                      Tooltip(
+                        message: 'Sinkronkan agenda',
+                        child: InkWell(
+                          onTap: _sedangMenyinkron
+                              ? null
+                              : () => _muatAgenda(tampilkanPesan: true),
+                          borderRadius: BorderRadius.circular(20),
+                          child: Padding(
+                            padding: const EdgeInsets.all(4),
+                            child: _sedangMenyinkron
+                                ? SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: tema.aksen,
+                                    ),
+                                  )
+                                : Icon(
+                                    Icons.sync_rounded,
+                                    size: 18,
+                                    color: tema.aksen,
+                                  ),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
 
                 // Daftar Kartu Agenda Berwarna
                 Expanded(
-                  child: agendaTerpilih.isEmpty
+                  child: _memuatAgenda
+                      ? Center(
+                          child: CircularProgressIndicator(color: tema.aksen),
+                        )
+                      : agendaTerpilih.isEmpty
                       ? Center(
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
@@ -1545,10 +1880,12 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
                                 color: Colors.white.withValues(alpha: 0.2),
                               ),
                               const SizedBox(height: 8),
-                              const Text(
-                                'Belum ada jadwal kegiatan di tanggal ini.\nKetuk tombol + Agenda di bawah untuk membuat jadwal.',
+                              Text(
+                                _modeAdmin
+                                    ? 'Belum ada jadwal kegiatan di tanggal ini.\nKetuk tombol + Agenda di bawah untuk membuat jadwal.'
+                                    : 'Belum ada jadwal kegiatan di tanggal ini.',
                                 textAlign: TextAlign.center,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   color: Colors.white54,
                                   fontSize: 12,
                                 ),
@@ -1556,15 +1893,21 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
                             ],
                           ),
                         )
-                      : ListView.builder(
-                          padding: const EdgeInsets.fromLTRB(14, 4, 14, 80),
-                          itemCount: agendaTerpilih.length,
-                          itemBuilder: (context, index) {
-                            return _buildColorfulAgendaCard(
-                              agendaTerpilih[index],
-                              tema,
-                            );
-                          },
+                      : RefreshIndicator(
+                          onRefresh: _muatAgenda,
+                          color: tema.aksen,
+                          backgroundColor: tema.kartu,
+                          child: ListView.builder(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: const EdgeInsets.fromLTRB(14, 4, 14, 80),
+                            itemCount: agendaTerpilih.length,
+                            itemBuilder: (context, index) {
+                              return _buildColorfulAgendaCard(
+                                agendaTerpilih[index],
+                                tema,
+                              );
+                            },
+                          ),
                         ),
                 ),
               ],
@@ -1572,17 +1915,19 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _bukaDialogFormAgenda(),
-        backgroundColor: tema.aksen,
-        foregroundColor: tema.latar1,
-        elevation: 6,
-        icon: const Icon(Icons.add_circle_outline_rounded),
-        label: const Text(
-          'Tambah Agenda',
-          style: TextStyle(fontWeight: FontWeight.w900),
-        ),
-      ),
+      floatingActionButton: _modeAdmin
+          ? FloatingActionButton.extended(
+              onPressed: () => _bukaDialogFormAgenda(),
+              backgroundColor: tema.aksen,
+              foregroundColor: tema.latar1,
+              elevation: 6,
+              icon: const Icon(Icons.add_circle_outline_rounded),
+              label: const Text(
+                'Tambah Agenda',
+                style: TextStyle(fontWeight: FontWeight.w900),
+              ),
+            )
+          : null,
     );
   }
 
@@ -1593,13 +1938,13 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
         scrollDirection: Axis.horizontal,
-        itemCount: KategoriOrmawa.values.length + 1,
+        itemCount: _daftarOrmawa.length + 1,
         separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
           if (index == 0) {
-            final isAll = _selectedFilter == null;
+            final isAll = _filterOrmawaId == null;
             return GestureDetector(
-              onTap: () => setState(() => _selectedFilter = null),
+              onTap: () => setState(() => _filterOrmawaId = null),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -1626,14 +1971,14 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
             );
           }
 
-          final org = KategoriOrmawa.values[index - 1];
-          final isSelected = _selectedFilter == org;
-          final warna = _getWarna(org);
-          final nama = _getNama(org);
+          final org = _daftarOrmawa[index - 1];
+          final isSelected = _filterOrmawaId == org.id;
+          final warna = org.warna;
+          final nama = org.nama;
 
           return GestureDetector(
             onTap: () =>
-                setState(() => _selectedFilter = isSelected ? null : org),
+                setState(() => _filterOrmawaId = isSelected ? null : org.id),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -1686,8 +2031,9 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
 
   // Kartu Agenda Berwarna Penuh & Sangat Jelas
   Widget _buildColorfulAgendaCard(AgendaAcara item, PengaturanWarna tema) {
-    final warna = _getWarna(item.ormawa);
-    final namaOrmawa = _getNama(item.ormawa);
+    final ormawa = _ormawaUntuk(item.ormawaId);
+    final warna = ormawa.warna;
+    final namaOrmawa = ormawa.nama;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -1746,7 +2092,7 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
-                                  item.ormawa.ikon,
+                                  ormawa.ikon,
                                   size: 13,
                                   color: Colors.white,
                                 ),
@@ -1779,7 +2125,7 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            item.ormawa.kategori,
+                            ormawa.kategori,
                             style: TextStyle(
                               color: warna,
                               fontSize: 10,
@@ -1790,29 +2136,32 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
                       ],
                     ),
                   ),
-                  InkWell(
-                    onTap: () => _bukaDialogFormAgenda(agendaUntukDiedit: item),
-                    child: const Padding(
-                      padding: EdgeInsets.all(4.0),
-                      child: Icon(
-                        Icons.edit_note_rounded,
-                        color: Colors.white70,
-                        size: 20,
+                  if (_modeAdmin) ...[
+                    InkWell(
+                      onTap: () =>
+                          _bukaDialogFormAgenda(agendaUntukDiedit: item),
+                      child: const Padding(
+                        padding: EdgeInsets.all(4.0),
+                        child: Icon(
+                          Icons.edit_note_rounded,
+                          color: Colors.white70,
+                          size: 20,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 6),
-                  InkWell(
-                    onTap: () => _konfirmasiHapus(item),
-                    child: const Padding(
-                      padding: EdgeInsets.all(4.0),
-                      child: Icon(
-                        Icons.delete_outline_rounded,
-                        color: Colors.redAccent,
-                        size: 19,
+                    const SizedBox(width: 6),
+                    InkWell(
+                      onTap: () => _konfirmasiHapus(item),
+                      child: const Padding(
+                        padding: EdgeInsets.all(4.0),
+                        child: Icon(
+                          Icons.delete_outline_rounded,
+                          color: Colors.redAccent,
+                          size: 19,
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ],
               ),
               const SizedBox(height: 10),
