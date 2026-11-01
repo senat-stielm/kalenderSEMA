@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
   <!--
     Base href relatif agar aplikasi bisa dibuka baik di root maupun di
@@ -10,22 +10,91 @@
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="Kalender agenda Senat, BEM, HMPS, UKM, dan UKK.">
-  <meta name="theme-color" content="#0F172A">
+  <meta name="theme-color" content="#FDFBF5">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="Kalender Ormawa">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="OrmaKta">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>Kalender Ormawa</title>
+  <title>OrmaKta</title>
   <link rel="manifest" href="manifest.json">
+
+  <!-- Latar malam hijau sejak awal agar tidak ada kilatan saat memuat. -->
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: #06110C;
+      overflow: hidden;
+    }
+    #pemuat {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background:
+        radial-gradient(circle at 82% 10%, rgba(30, 91, 64, 0.55), transparent 52%),
+        radial-gradient(circle at 15% 88%, rgba(217, 188, 114, 0.12), transparent 58%),
+        linear-gradient(135deg, #06110C, #0B2116 55%, #07130E);
+      transition: opacity 0.45s ease;
+    }
+    #pemuat .lencana {
+      width: 64px;
+      height: 64px;
+      border-radius: 21px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #1E5B40, #123F2B);
+      box-shadow:
+        0 0 44px rgba(30, 91, 64, 0.24),
+        0 12px 30px rgba(59, 47, 30, 0.2);
+      animation: denyut 1.7s ease-in-out infinite;
+    }
+    #pemuat .lencana .ikon {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #FFFFFF;
+    }
+    @keyframes denyut {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.07); }
+    }
+  </style>
 </head>
 <body>
+  <div id="pemuat" aria-label="Memuat Kalender Ormawa">
+    <div class="lencana">
+      <div class="ikon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1E5B40" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="5" width="18" height="16" rx="4"></rect>
+          <path d="M8 3v4M16 3v4M3 11h18"></path>
+          <path d="M8 15h3M8 18h6"></path>
+        </svg>
+      </div>
+    </div>
+  </div>
+  <script>
+    window.addEventListener('flutter-first-frame', function () {
+      var pemuat = document.getElementById('pemuat');
+      if (!pemuat) return;
+      pemuat.style.opacity = '0';
+      setTimeout(function () { pemuat.remove(); }, 500);
+    });
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

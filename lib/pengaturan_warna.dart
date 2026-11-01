@@ -3,17 +3,16 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Kumpulan warna tema aplikasi yang bisa diubah pengguna.
+/// Tema aplikasi: mode terang/gelap plus warna aksen yang bisa diubah
+/// pengguna. Warna latar, kartu, dan teks ditentukan otomatis dari mode agar
+/// kontras selalu terjaga.
 @immutable
 class PengaturanWarna {
   const PengaturanWarna({
     required this.aksen,
     required this.aksenGelap,
     required this.sekunder,
-    required this.latar1,
-    required this.latar2,
-    required this.latar3,
-    required this.kartu,
+    this.gelap = true,
   });
 
   /// Warna utama: tombol, sorotan, hari terpilih.
@@ -25,52 +24,125 @@ class PengaturanWarna {
   /// Warna pendukung untuk glow dan elemen sekunder.
   final Color sekunder;
 
+  /// `true` untuk mode gelap, `false` untuk mode terang.
+  final bool gelap;
+
+  /// Tema bawaan: krem hangat dengan hijau hutan, sesuai desain aplikasi.
+  static const bawaan = PengaturanWarna(
+    aksen: Color(0xFF1E5B40),
+    aksenGelap: Color(0xFF123F2B),
+    sekunder: Color(0xFFA8C46B),
+    gelap: false,
+  );
+
+  // ---------------------------------------------------------------------------
+  // Latar belakang
+  // ---------------------------------------------------------------------------
+
   /// Tiga warna gradien latar belakang (atas, tengah, bawah).
-  final Color latar1;
-  final Color latar2;
-  final Color latar3;
+  Color get latar1 => gelap ? const Color(0xFF05060B) : const Color(0xFFFDFBF5);
+  Color get latar2 => gelap ? const Color(0xFF0A0B12) : const Color(0xFFF8F2E6);
+  Color get latar3 => gelap ? const Color(0xFF101020) : const Color(0xFFF2EADB);
 
   /// Warna dasar kartu, panel, dan dialog.
-  final Color kartu;
+  Color get kartu => gelap ? const Color(0xFF17181F) : const Color(0xFFFFFFFF);
 
-  static const bawaan = PengaturanWarna(
-    aksen: Color(0xFFF59E0B),
-    aksenGelap: Color(0xFFD97706),
-    sekunder: Color(0xFF38BDF8),
-    latar1: Color(0xFF070B19),
-    latar2: Color(0xFF0F172A),
-    latar3: Color(0xFF1E1B4B),
-    kartu: Color(0xFF1E293B),
-  );
+  // ---------------------------------------------------------------------------
+  // Warna teks dan permukaan
+  // ---------------------------------------------------------------------------
+
+  /// Teks utama.
+  Color get teks => gelap ? Colors.white : const Color(0xFF15251B);
+
+  /// Teks pendukung.
+  Color get teksLembut =>
+      gelap ? Colors.white.withValues(alpha: 0.72) : const Color(0xFF435648);
+
+  /// Teks yang lebih redup (keterangan).
+  Color get teksRedup =>
+      gelap ? Colors.white.withValues(alpha: 0.55) : const Color(0xFF77857A);
+
+  /// Teks paling samar (placeholder, nonaktif).
+  Color get teksSamar =>
+      gelap ? Colors.white.withValues(alpha: 0.36) : const Color(0xFFA3AEA4);
+
+  /// Garis tepi kartu dan pemisah.
+  Color get garis =>
+      gelap ? Colors.white.withValues(alpha: 0.10) : const Color(0x1A15251B);
+
+  /// Garis tepi sangat halus.
+  Color get garisLembut =>
+      gelap ? Colors.white.withValues(alpha: 0.06) : const Color(0x0F15251B);
+
+  /// Latar kolom isian dan baris daftar.
+  Color get isian =>
+      gelap ? Colors.white.withValues(alpha: 0.055) : const Color(0xFFF3EEE2);
+
+  /// Gradien kaca untuk header, kalender, dan panel melayang.
+  Color get kacaAtas => gelap
+      ? Colors.white.withValues(alpha: 0.10)
+      : Colors.white.withValues(alpha: 0.75);
+  Color get kacaBawah => gelap
+      ? Colors.white.withValues(alpha: 0.015)
+      : Colors.white.withValues(alpha: 0.42);
+
+  /// Warna aksen yang aman dipakai sebagai teks atau ikon di atas kartu.
+  /// Di mode gelap, aksen yang terlalu pekat dicerahkan agar tetap terbaca.
+  Color get aksenTeks {
+    if (!gelap) return aksenGelap;
+    final aksenTerang =
+        ThemeData.estimateBrightnessForColor(aksen) == Brightness.light;
+    return aksenTerang ? aksen : Color.lerp(aksen, Colors.white, 0.55)!;
+  }
+
+  /// Warna cincin tanggal libur nasional.
+  Color get liburNasional =>
+      gelap ? const Color(0xFFF87171) : const Color(0xFFB91C1C);
+
+  /// Warna cincin hari besar/peringatan nasional.
+  Color get peringatanNasional =>
+      gelap ? const Color(0xFFFBBF24) : const Color(0xFFB45309);
+
+  /// Warna teks/ikon yang kontras di atas latar [aksen].
+  Color get diAksen =>
+      ThemeData.estimateBrightnessForColor(aksen) == Brightness.dark
+      ? Colors.white
+      : const Color(0xFF0B1220);
+
+  /// Bayangan kartu. Di mode terang memakai cokelat hangat agar tidak terasa
+  /// kotor di atas latar krem.
+  Color get bayangan => gelap
+      ? Colors.black.withValues(alpha: 0.30)
+      : const Color(0xFF3B2F1E).withValues(alpha: 0.13);
+  Color get bayanganLembut => gelap
+      ? Colors.black.withValues(alpha: 0.20)
+      : const Color(0xFF3B2F1E).withValues(alpha: 0.07);
+
+  /// Warna peringatan yang tetap terbaca di kedua mode.
+  Color get peringatan => gelap ? Colors.orangeAccent : const Color(0xFFB45309);
+
+  /// Warna bahaya (hapus).
+  Color get bahaya => gelap ? Colors.redAccent : const Color(0xFFDC2626);
 
   PengaturanWarna salin({
     Color? aksen,
     Color? aksenGelap,
     Color? sekunder,
-    Color? latar1,
-    Color? latar2,
-    Color? latar3,
-    Color? kartu,
+    bool? gelap,
   }) {
     return PengaturanWarna(
       aksen: aksen ?? this.aksen,
       aksenGelap: aksenGelap ?? this.aksenGelap,
       sekunder: sekunder ?? this.sekunder,
-      latar1: latar1 ?? this.latar1,
-      latar2: latar2 ?? this.latar2,
-      latar3: latar3 ?? this.latar3,
-      kartu: kartu ?? this.kartu,
+      gelap: gelap ?? this.gelap,
     );
   }
 
-  Map<String, int> kePeta() => {
+  Map<String, dynamic> kePeta() => {
     'aksen': aksen.toARGB32(),
     'aksenGelap': aksenGelap.toARGB32(),
     'sekunder': sekunder.toARGB32(),
-    'latar1': latar1.toARGB32(),
-    'latar2': latar2.toARGB32(),
-    'latar3': latar3.toARGB32(),
-    'kartu': kartu.toARGB32(),
+    'gelap': gelap,
   };
 
   static PengaturanWarna dariPeta(Map<String, dynamic> peta) {
@@ -79,14 +151,13 @@ class PengaturanWarna {
       return nilai is int ? Color(nilai) : cadangan;
     }
 
+    final mode = peta['gelap'];
+
     return PengaturanWarna(
       aksen: ambil('aksen', bawaan.aksen),
       aksenGelap: ambil('aksenGelap', bawaan.aksenGelap),
       sekunder: ambil('sekunder', bawaan.sekunder),
-      latar1: ambil('latar1', bawaan.latar1),
-      latar2: ambil('latar2', bawaan.latar2),
-      latar3: ambil('latar3', bawaan.latar3),
-      kartu: ambil('kartu', bawaan.kartu),
+      gelap: mode is bool ? mode : true,
     );
   }
 }

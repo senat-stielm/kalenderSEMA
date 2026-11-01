@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'pengaturan_warna.dart';
+
 /// Palet warna cepat yang tersedia di seluruh aplikasi.
 const List<Color> paletWarnaCepat = [
   Color(0xFFEF4444), // Red
@@ -40,14 +42,14 @@ Color? uraiKodeHex(String teks) {
 Future<Color?> tampilkanPemilihWarna(
   BuildContext context, {
   required Color warnaAwal,
-  required Color warnaKartu,
+  required PengaturanWarna tema,
   String judul = 'Pilih Warna',
 }) {
   return showDialog<Color>(
     context: context,
     builder: (_) => _DialogPemilihWarna(
       warnaAwal: warnaAwal,
-      warnaKartu: warnaKartu,
+      tema: tema,
       judul: judul,
     ),
   );
@@ -56,12 +58,12 @@ Future<Color?> tampilkanPemilihWarna(
 class _DialogPemilihWarna extends StatefulWidget {
   const _DialogPemilihWarna({
     required this.warnaAwal,
-    required this.warnaKartu,
+    required this.tema,
     required this.judul,
   });
 
   final Color warnaAwal;
-  final Color warnaKartu;
+  final PengaturanWarna tema;
   final String judul;
 
   @override
@@ -130,6 +132,7 @@ class _DialogPemilihWarnaState extends State<_DialogPemilihWarna> {
 
   @override
   Widget build(BuildContext context) {
+    final tema = widget.tema;
     final lebar = (MediaQuery.sizeOf(context).width - 112).clamp(200.0, 320.0);
     final tinggiSV = lebar / 2.4;
     final warnaTeksTombol =
@@ -138,11 +141,11 @@ class _DialogPemilihWarnaState extends State<_DialogPemilihWarna> {
         : const Color(0xFF0F172A);
 
     return AlertDialog(
-      backgroundColor: widget.warnaKartu,
+      backgroundColor: tema.kartu,
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       contentPadding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(28),
         side: BorderSide(color: _warna.withValues(alpha: 0.6), width: 1.5),
       ),
       title: Row(
@@ -162,8 +165,8 @@ class _DialogPemilihWarnaState extends State<_DialogPemilihWarna> {
           Expanded(
             child: Text(
               widget.judul,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: tema.teks,
                 fontSize: 17,
                 fontWeight: FontWeight.bold,
               ),
@@ -223,47 +226,47 @@ class _DialogPemilihWarnaState extends State<_DialogPemilihWarna> {
               TextField(
                 controller: _hexCtrl,
                 focusNode: _fokusHex,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: tema.teks,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.2,
                 ),
                 textCapitalization: TextCapitalization.characters,
                 decoration: InputDecoration(
                   labelText: 'Kode Hex',
-                  labelStyle: const TextStyle(color: Colors.white70),
+                  labelStyle: TextStyle(color: tema.teksLembut),
                   helperText: 'Contoh: #F59E0B',
-                  helperStyle: const TextStyle(
-                    color: Colors.white38,
+                  helperStyle: TextStyle(
+                    color: tema.teksRedup,
                     fontSize: 11,
                   ),
                   errorText: _hexTidakValid ? 'Format harus #RRGGBB' : null,
                   filled: true,
-                  fillColor: Colors.black26,
-                  prefixIcon: const Icon(
+                  fillColor: tema.isian,
+                  prefixIcon: Icon(
                     Icons.tag_rounded,
                     size: 18,
-                    color: Colors.white54,
+                    color: tema.teksRedup,
                   ),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Colors.white24),
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide(color: tema.garis),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16),
                     borderSide: BorderSide(color: _warna, width: 2),
                   ),
                 ),
                 onChanged: _ubahHex,
               ),
               const SizedBox(height: 18),
-              const Text(
+              Text(
                 'Palet cepat',
                 style: TextStyle(
-                  color: Colors.white70,
+                  color: tema.teksLembut,
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
                 ),
@@ -284,7 +287,7 @@ class _DialogPemilihWarnaState extends State<_DialogPemilihWarna> {
                         color: warna,
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: terpilih ? Colors.white : Colors.white24,
+                          color: terpilih ? Colors.white : tema.garis,
                           width: terpilih ? 2.5 : 1,
                         ),
                       ),
@@ -306,7 +309,7 @@ class _DialogPemilihWarnaState extends State<_DialogPemilihWarna> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Batal', style: TextStyle(color: Colors.white60)),
+          child: const Text('Batal'),
         ),
         FilledButton(
           style: FilledButton.styleFrom(

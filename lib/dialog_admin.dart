@@ -68,7 +68,7 @@ class _DialogMasukAdminState extends State<DialogMasukAdmin> {
       backgroundColor: tema.kartu,
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(28),
         side: BorderSide(color: tema.aksen.withValues(alpha: 0.6), width: 1.5),
       ),
       title: Row(
@@ -77,22 +77,22 @@ class _DialogMasukAdminState extends State<DialogMasukAdmin> {
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               gradient: LinearGradient(colors: [tema.aksen, tema.aksenGelap]),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(
               Icons.lock_outline_rounded,
-              color: tema.latar1,
+              color: tema.diAksen,
               size: 18,
             ),
           ),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Text(
               'Masuk Mode Admin',
               style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: tema.teks,
               ),
             ),
           ),
@@ -102,15 +102,15 @@ class _DialogMasukAdminState extends State<DialogMasukAdmin> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Hanya admin yang perlu masuk. Anggota lain dapat langsung melihat '
             'kalender.',
-            style: TextStyle(color: Colors.white60, fontSize: 12),
+            style: TextStyle(color: tema.teksLembut, fontSize: 12),
           ),
           const SizedBox(height: 16),
           TextField(
             controller: _penggunaCtrl,
-            style: const TextStyle(color: Colors.white),
+            style: TextStyle(color: tema.teks),
             textInputAction: TextInputAction.next,
             autocorrect: false,
             decoration: dekorasiFieldAdmin(tema, 'Nama pengguna', Icons.person),
@@ -119,7 +119,7 @@ class _DialogMasukAdminState extends State<DialogMasukAdmin> {
           TextField(
             controller: _sandiCtrl,
             obscureText: _sandiTersembunyi,
-            style: const TextStyle(color: Colors.white),
+            style: TextStyle(color: tema.teks),
             textInputAction: TextInputAction.done,
             autocorrect: false,
             enableSuggestions: false,
@@ -134,7 +134,7 @@ class _DialogMasukAdminState extends State<DialogMasukAdmin> {
                       _sandiTersembunyi
                           ? Icons.visibility_off_rounded
                           : Icons.visibility_rounded,
-                      color: Colors.white54,
+                      color: tema.teksRedup,
                       size: 20,
                     ),
                     onPressed: () {
@@ -147,8 +147,8 @@ class _DialogMasukAdminState extends State<DialogMasukAdmin> {
             const SizedBox(height: 12),
             Text(
               _galat!,
-              style: const TextStyle(
-                color: Colors.orangeAccent,
+              style: TextStyle(
+                color: tema.peringatan,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),
@@ -159,14 +159,14 @@ class _DialogMasukAdminState extends State<DialogMasukAdmin> {
       actions: [
         TextButton(
           onPressed: _memproses ? null : () => Navigator.pop(context),
-          child: const Text('Batal', style: TextStyle(color: Colors.white60)),
+          child: const Text('Batal'),
         ),
         ElevatedButton(
           style: ElevatedButton.styleFrom(
             backgroundColor: tema.aksen,
-            foregroundColor: tema.latar1,
+            foregroundColor: tema.diAksen,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(14),
             ),
           ),
           onPressed: _memproses ? null : _masuk,
@@ -176,7 +176,7 @@ class _DialogMasukAdminState extends State<DialogMasukAdmin> {
                   height: 16,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: tema.latar1,
+                    color: tema.diAksen,
                   ),
                 )
               : const Text(
@@ -258,7 +258,7 @@ class _DialogUbahSandiState extends State<DialogUbahSandi> {
       backgroundColor: tema.kartu,
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(28),
         side: BorderSide(color: tema.aksen.withValues(alpha: 0.6), width: 1.5),
       ),
       title: Row(
@@ -267,18 +267,18 @@ class _DialogUbahSandiState extends State<DialogUbahSandi> {
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               gradient: LinearGradient(colors: [tema.aksen, tema.aksenGelap]),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(14),
             ),
-            child: Icon(Icons.password_rounded, color: tema.latar1, size: 18),
+            child: Icon(Icons.password_rounded, color: tema.diAksen, size: 18),
           ),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Text(
               'Ubah Password Admin',
               style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: tema.teks,
               ),
             ),
           ),
@@ -294,7 +294,7 @@ class _DialogUbahSandiState extends State<DialogUbahSandi> {
               obscureText: true,
               autocorrect: false,
               enableSuggestions: false,
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: tema.teks),
               decoration: dekorasiFieldAdmin(tema, 'Password lama', Icons.key),
             ),
             const SizedBox(height: 12),
@@ -303,7 +303,7 @@ class _DialogUbahSandiState extends State<DialogUbahSandi> {
               obscureText: true,
               autocorrect: false,
               enableSuggestions: false,
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: tema.teks),
               decoration:
                   dekorasiFieldAdmin(
                     tema,
@@ -312,8 +312,8 @@ class _DialogUbahSandiState extends State<DialogUbahSandi> {
                   ).copyWith(
                     helperText:
                         'Minimal ${AuthAdmin.panjangSandiMinimum} karakter',
-                    helperStyle: const TextStyle(
-                      color: Colors.white38,
+                    helperStyle: TextStyle(
+                      color: tema.teksRedup,
                       fontSize: 10,
                     ),
                   ),
@@ -325,7 +325,7 @@ class _DialogUbahSandiState extends State<DialogUbahSandi> {
               autocorrect: false,
               enableSuggestions: false,
               onSubmitted: (_) => _simpan(),
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: tema.teks),
               decoration: dekorasiFieldAdmin(
                 tema,
                 'Ulangi password',
@@ -336,8 +336,8 @@ class _DialogUbahSandiState extends State<DialogUbahSandi> {
               const SizedBox(height: 12),
               Text(
                 _galat!,
-                style: const TextStyle(
-                  color: Colors.orangeAccent,
+                style: TextStyle(
+                  color: tema.peringatan,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
@@ -349,14 +349,14 @@ class _DialogUbahSandiState extends State<DialogUbahSandi> {
       actions: [
         TextButton(
           onPressed: _memproses ? null : () => Navigator.pop(context),
-          child: const Text('Batal', style: TextStyle(color: Colors.white60)),
+          child: const Text('Batal'),
         ),
         ElevatedButton(
           style: ElevatedButton.styleFrom(
             backgroundColor: tema.aksen,
-            foregroundColor: tema.latar1,
+            foregroundColor: tema.diAksen,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(14),
             ),
           ),
           onPressed: _memproses ? null : _simpan,
@@ -366,7 +366,7 @@ class _DialogUbahSandiState extends State<DialogUbahSandi> {
                   height: 16,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: tema.latar1,
+                    color: tema.diAksen,
                   ),
                 )
               : const Text(
@@ -386,14 +386,21 @@ InputDecoration dekorasiFieldAdmin(
 ) {
   return InputDecoration(
     labelText: label,
-    labelStyle: const TextStyle(color: Colors.white70),
-    prefixIcon: Icon(ikon, color: Colors.white38, size: 20),
+    labelStyle: TextStyle(color: tema.teksLembut),
+    prefixIcon: Icon(ikon, color: tema.teksRedup, size: 20),
     filled: true,
-    fillColor: Colors.black26,
-    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+    fillColor: tema.isian,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: BorderSide(color: tema.garis),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: BorderSide(color: tema.garis),
+    ),
     focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(color: tema.aksen, width: 2),
+      borderRadius: BorderRadius.circular(16),
+      borderSide: BorderSide(color: tema.aksen, width: 1.6),
     ),
   );
 }

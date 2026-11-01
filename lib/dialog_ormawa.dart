@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'dialog_admin.dart';
+import 'gaya_iphone.dart';
 import 'model_ormawa.dart';
 import 'pemilih_warna.dart';
 import 'pengaturan_warna.dart';
@@ -61,7 +62,7 @@ class _DialogOrmawaState extends State<DialogOrmawa> {
     final hasil = await tampilkanPemilihWarna(
       context,
       warnaAwal: _warna,
-      warnaKartu: widget.tema.kartu,
+      tema: widget.tema,
       judul:
           'Warna ${_namaCtrl.text.trim().isEmpty ? 'Ormawa' : _namaCtrl.text.trim()}',
     );
@@ -80,7 +81,7 @@ class _DialogOrmawaState extends State<DialogOrmawa> {
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       contentPadding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(28),
         side: BorderSide(color: _warna.withValues(alpha: 0.6), width: 1.5),
       ),
       title: Row(
@@ -90,7 +91,7 @@ class _DialogOrmawaState extends State<DialogOrmawa> {
             radius: 18,
             child: Icon(
               ikonDariKunci(_ikonKunci),
-              color: Colors.white,
+              color: warnaDiAtas(_warna),
               size: 20,
             ),
           ),
@@ -98,10 +99,10 @@ class _DialogOrmawaState extends State<DialogOrmawa> {
           Expanded(
             child: Text(
               _modeUbah ? 'Ubah Ormawa' : 'Tambah Ormawa',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: tema.teks,
               ),
             ),
           ),
@@ -116,7 +117,7 @@ class _DialogOrmawaState extends State<DialogOrmawa> {
             children: [
               TextField(
                 controller: _namaCtrl,
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: tema.teks),
                 textCapitalization: TextCapitalization.words,
                 decoration: dekorasiFieldAdmin(
                   tema,
@@ -133,7 +134,7 @@ class _DialogOrmawaState extends State<DialogOrmawa> {
                     ? _kategori
                     : 'Lainnya',
                 dropdownColor: tema.latar2,
-                style: const TextStyle(color: Colors.white, fontSize: 14),
+                style: TextStyle(color: tema.teks, fontSize: 14),
                 decoration: dekorasiFieldAdmin(
                   tema,
                   'Jenis Organisasi',
@@ -145,7 +146,7 @@ class _DialogOrmawaState extends State<DialogOrmawa> {
                         value: kategori,
                         child: Text(
                           kategori,
-                          style: const TextStyle(color: Colors.white),
+                          style: TextStyle(color: tema.teks),
                         ),
                       ),
                     )
@@ -155,10 +156,10 @@ class _DialogOrmawaState extends State<DialogOrmawa> {
                 },
               ),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 'Warna Identitas',
                 style: TextStyle(
-                  color: Colors.white70,
+                  color: tema.teksLembut,
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
                 ),
@@ -172,15 +173,15 @@ class _DialogOrmawaState extends State<DialogOrmawa> {
                     decoration: BoxDecoration(
                       color: _warna,
                       shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white24),
+                      border: Border.all(color: tema.garis),
                     ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       formatKodeHex(_warna),
-                      style: const TextStyle(
-                        color: Colors.white70,
+                      style: TextStyle(
+                        color: tema.teksRedup,
                         fontSize: 12,
                         letterSpacing: 0.8,
                       ),
@@ -195,7 +196,7 @@ class _DialogOrmawaState extends State<DialogOrmawa> {
                         vertical: 8,
                       ),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(14),
                       ),
                     ),
                     icon: const Icon(Icons.colorize_rounded, size: 16),
@@ -231,10 +232,10 @@ class _DialogOrmawaState extends State<DialogOrmawa> {
                         ),
                       ),
                       child: terpilih
-                          ? const Icon(
+                          ? Icon(
                               Icons.check,
                               size: 16,
-                              color: Colors.white,
+                              color: warnaDiAtas(warna),
                             )
                           : null,
                     ),
@@ -242,10 +243,10 @@ class _DialogOrmawaState extends State<DialogOrmawa> {
                 }).toList(),
               ),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 'Ikon',
                 style: TextStyle(
-                  color: Colors.white70,
+                  color: tema.teksLembut,
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
                 ),
@@ -267,17 +268,19 @@ class _DialogOrmawaState extends State<DialogOrmawa> {
                         decoration: BoxDecoration(
                           color: terpilih
                               ? _warna
-                              : Colors.white.withValues(alpha: 0.07),
-                          borderRadius: BorderRadius.circular(10),
+                              : tema.isian,
+                          borderRadius: BorderRadius.circular(14),
                           border: Border.all(
-                            color: terpilih ? Colors.white : Colors.white24,
+                            color: terpilih ? Colors.white : tema.garis,
                             width: terpilih ? 2 : 1,
                           ),
                         ),
                         child: Icon(
                           pilihan.ikon,
                           size: 20,
-                          color: terpilih ? Colors.white : Colors.white60,
+                          color: terpilih
+                              ? warnaDiAtas(_warna)
+                              : tema.teksRedup,
                         ),
                       ),
                     ),
@@ -288,8 +291,8 @@ class _DialogOrmawaState extends State<DialogOrmawa> {
                 const SizedBox(height: 12),
                 Text(
                   _galat!,
-                  style: const TextStyle(
-                    color: Colors.orangeAccent,
+                  style: TextStyle(
+                    color: tema.peringatan,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
@@ -302,14 +305,18 @@ class _DialogOrmawaState extends State<DialogOrmawa> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Batal', style: TextStyle(color: Colors.white60)),
+          child: const Text('Batal'),
         ),
         FilledButton(
           style: FilledButton.styleFrom(
             backgroundColor: _warna,
-            foregroundColor: Colors.white,
+            foregroundColor:
+                ThemeData.estimateBrightnessForColor(_warna) ==
+                    Brightness.dark
+                ? Colors.white
+                : tema.diAksen,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(14),
             ),
           ),
           onPressed: _simpan,
