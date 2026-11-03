@@ -9,7 +9,7 @@ PWA artinya bisa dibuka di browser, dan di HP bisa dipasang seperti aplikasi
 - `flutter build web --release` berhasil; hasilnya di `build/web`.
 - `<base href="./">` relatif, sehingga berjalan di alamat apa pun, termasuk
   `https://pengguna.github.io/nama-repo/`.
-- `web/manifest.json` + ikon PWA 192/512 (dari `assets/logo_sema.png`).
+- `web/manifest.json` + ikon PWA 192/512 (dari `assets/icon.png`).
 - `.nojekyll` agar GitHub Pages tidak memproses berkas dengan Jekyll.
 - Workflow `.github/workflows/deploy-web.yml` untuk build & deploy otomatis.
 
@@ -93,6 +93,10 @@ PWA hanya bisa dipasang lewat **HTTPS**; GitHub Pages sudah menyediakannya.
   daftar ormawa selalu sama di keduanya.
 - Login admin, ubah password, kalender tahunan, dan pengelolaan ormawa juga
   berfungsi di browser. Password admin tersimpan per browser/perangkat.
+- **Help Desk AI tidak aktif di PWA publik.** API key DeepSeek sengaja tidak
+  ditanam di kode agar tidak bisa diambil dari situs. Untuk APK Android dengan
+  Help Desk aktif, build dengan
+  `--dart-define=HELPDESK_API_KEY=sk-...`.
 - Setelah update aplikasi, service worker mungkin masih menyimpan versi lama
   sebentar. Tutup lalu buka kembali tab, atau tarik untuk menyegarkan.
 - Jika halaman kosong: pastikan **Settings → Pages** sudah menunjuk ke

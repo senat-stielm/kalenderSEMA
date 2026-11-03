@@ -68,9 +68,11 @@ flutter:
 
   assets:
     - assets/fonts/OFL.txt
+    - assets/icon.png
     - assets/widya_transparan.png
     - assets/splash_logo/
     - assets/logo_ormakta.png
+    - assets/logo_ormawa/
 
   fonts:
     - family: Poppins

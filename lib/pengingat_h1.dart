@@ -145,7 +145,7 @@ class _PengingatH1State extends State<_PengingatH1>
               ),
               // Karakter muncul dari sisi kiri bawah.
               Positioned(
-                left: -lebar * 0.16,
+                left: -lebar * 0.05,
                 bottom: -12,
                 width: lebarKarakter,
                 height: tinggiKarakter,

@@ -337,7 +337,7 @@ void main() {
 
     expect(find.text('OrmaKta'), findsOneWidget);
     expect(find.text('Kalender Ormawa'), findsOneWidget);
-    expect(find.byType(Image), findsNWidgets(10));
+    expect(find.byType(Image), findsNWidgets(14));
     expect(find.text('Kegiatan Terdekat'), findsNothing);
 
     await tester.pump(const Duration(seconds: 3));

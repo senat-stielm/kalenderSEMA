@@ -11,12 +11,16 @@ const List<(String, String)> _logoOrmawa = [
   ('logo_sema', 'Senat Mahasiswa'),
   ('bem', 'BEM'),
   ('hmps_kp', 'HMPS KP'),
+  ('hmps_manajemen', 'HMPS Manajemen'),
   ('ec', 'English Club'),
-  ('inteklam', 'Inteklam'),
-  ('paduan_suara', 'Paduan Suara'),
+  ('ukm_olahraga', 'UKM Olahraga'),
+  ('ukm_musikala', 'UKM Musikala'),
+  ('inteklam', 'UKM Inteklam'),
+  ('tari', 'UKM Tari'),
+  ('himalaya', 'UKM Himalaya'),
+  ('paduan_suara', 'UKM Paduan Suara'),
+  ('ukm_kewirausahaan', 'UKM Kewirausahaan'),
   ('pramuka', 'Pramuka'),
-  ('tari', 'Tari'),
-  ('himalaya', 'Himalaya'),
   ('resimen', 'Resimen Mahasiswa'),
 ];
 
@@ -284,11 +288,11 @@ class _LayarSplashState extends State<LayarSplash>
       child: Row(
         children: [
           Expanded(child: Divider(color: Colors.white.withValues(alpha: 0.1))),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 10),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
             child: Text(
-              'ORMAWA • UKM • UKK',
-              style: TextStyle(
+              '${_logoOrmawa.length} ORMAWA • UKM • UKK',
+              style: const TextStyle(
                 color: _teksSamar,
                 fontSize: 8.5,
                 fontWeight: FontWeight.w700,
@@ -311,11 +315,11 @@ class _LayarSplashState extends State<LayarSplash>
       child: LayoutBuilder(
         builder: (context, batas) {
           final lebar = batas.maxWidth;
-          final tile = math.min(60.0, (lebar - 40) / 5);
+          const kolom = 5;
+          final tile = math.min(60.0, (lebar - 40) / kolom);
           final jarak = 10.0;
-          final total = 5 * tile + 4 * jarak;
-          final kiri = (lebar - total) / 2;
-          final tinggi = 2 * tile + jarak;
+          final jumlahBaris = (_logoOrmawa.length / kolom).ceil();
+          final tinggi = jumlahBaris * tile + (jumlahBaris - 1) * jarak;
 
           return SizedBox(
             width: lebar,
@@ -325,9 +329,18 @@ class _LayarSplashState extends State<LayarSplash>
               builder: (context, _) {
                 final kepala = <_Kepala>[];
                 for (int i = 0; i < _logoOrmawa.length; i++) {
+                  final baris = i ~/ kolom;
+                  final kolomKe = i % kolom;
+                  final dalamBaris = math.min(
+                    kolom,
+                    _logoOrmawa.length - baris * kolom,
+                  );
+                  final lebarBaris =
+                      dalamBaris * tile + (dalamBaris - 1) * jarak;
+                  final kiriBaris = (lebar - lebarBaris) / 2;
                   final akhir = Offset(
-                    kiri + (i % 5) * (tile + jarak) + tile / 2,
-                    (i ~/ 5) * (tile + jarak) + tile / 2,
+                    kiriBaris + kolomKe * (tile + jarak) + tile / 2,
+                    baris * (tile + jarak) + tile / 2,
                   );
                   final awal = Offset(
                     akhir.dx - (lebar * 0.95 + 80 + i * 8),
@@ -430,7 +443,7 @@ class _LayarSplashState extends State<LayarSplash>
                 ],
               ),
               child: Image.asset(
-                'assets/splash_logo/${logo.$1}.png',
+                'assets/logo_ormawa/${logo.$1}.png',
                 fit: BoxFit.contain,
               ),
             ),

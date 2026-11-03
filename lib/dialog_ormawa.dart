@@ -89,11 +89,20 @@ class _DialogOrmawaState extends State<DialogOrmawa> {
           CircleAvatar(
             backgroundColor: _warna,
             radius: 18,
-            child: Icon(
-              ikonDariKunci(_ikonKunci),
-              color: warnaDiAtas(_warna),
-              size: 20,
-            ),
+            child: widget.awal?.asetLogo != null
+                ? ClipOval(
+                    child: Image.asset(
+                      widget.awal!.asetLogo!,
+                      width: 36,
+                      height: 36,
+                      fit: BoxFit.contain,
+                    ),
+                  )
+                : Icon(
+                    ikonDariKunci(_ikonKunci),
+                    color: warnaDiAtas(_warna),
+                    size: 20,
+                  ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -243,50 +252,70 @@ class _DialogOrmawaState extends State<DialogOrmawa> {
                 }).toList(),
               ),
               const SizedBox(height: 16),
-              Text(
-                'Ikon',
-                style: TextStyle(
-                  color: tema.teksLembut,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: daftarIkonOrmawa.map((pilihan) {
-                  final terpilih = pilihan.kunci == _ikonKunci;
-                  return Tooltip(
-                    message: pilihan.label,
-                    child: GestureDetector(
-                      onTap: () => setState(() => _ikonKunci = pilihan.kunci),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 150),
-                        width: 38,
-                        height: 38,
-                        decoration: BoxDecoration(
-                          color: terpilih
-                              ? _warna
-                              : tema.isian,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: terpilih ? Colors.white : tema.garis,
-                            width: terpilih ? 2 : 1,
-                          ),
-                        ),
-                        child: Icon(
-                          pilihan.ikon,
-                          size: 20,
-                          color: terpilih
-                              ? warnaDiAtas(_warna)
-                              : tema.teksRedup,
+              if (widget.awal?.asetLogo != null)
+                Row(
+                  children: [
+                    Icon(
+                      Icons.verified_rounded,
+                      size: 16,
+                      color: tema.aksenTeks,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Logo resmi ormawa ini dipakai otomatis.',
+                        style: TextStyle(
+                          color: tema.teksLembut,
+                          fontSize: 11.5,
                         ),
                       ),
                     ),
-                  );
-                }).toList(),
-              ),
+                  ],
+                )
+              else ...[
+                Text(
+                  'Ikon',
+                  style: TextStyle(
+                    color: tema.teksLembut,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: daftarIkonOrmawa.map((pilihan) {
+                    final terpilih = pilihan.kunci == _ikonKunci;
+                    return Tooltip(
+                      message: pilihan.label,
+                      child: GestureDetector(
+                        onTap: () => setState(() => _ikonKunci = pilihan.kunci),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: terpilih ? _warna : tema.isian,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: terpilih ? Colors.white : tema.garis,
+                              width: terpilih ? 2 : 1,
+                            ),
+                          ),
+                          child: Icon(
+                            pilihan.ikon,
+                            size: 20,
+                            color: terpilih
+                                ? warnaDiAtas(_warna)
+                                : tema.teksRedup,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
               if (_galat != null) ...[
                 const SizedBox(height: 12),
                 Text(

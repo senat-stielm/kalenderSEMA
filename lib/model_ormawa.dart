@@ -50,6 +50,34 @@ IconData ikonDariKunci(String kunci) {
   return Icons.groups_rounded;
 }
 
+/// Logo resmi ormawa/UKM/UKK (PNG dengan latar transparan) berdasarkan id.
+const Map<String, String> asetLogoOrmawa = {
+  'senat': 'assets/logo_ormawa/logo_sema.png',
+  'bem': 'assets/logo_ormawa/bem.png',
+  'hmpsKp': 'assets/logo_ormawa/hmps_kp.png',
+  'hmpsMn': 'assets/logo_ormawa/hmps_manajemen.png',
+  'ukm1': 'assets/logo_ormawa/ukm_olahraga.png',
+  'ukm2': 'assets/logo_ormawa/ukm_musikala.png',
+  'ukm3': 'assets/logo_ormawa/inteklam.png',
+  'ukm4': 'assets/logo_ormawa/tari.png',
+  'ukm5': 'assets/logo_ormawa/himalaya.png',
+  'ukm6': 'assets/logo_ormawa/paduan_suara.png',
+  'ukm7': 'assets/logo_ormawa/ukm_kewirausahaan.png',
+  'ukk1': 'assets/logo_ormawa/pramuka.png',
+  'ukk2': 'assets/logo_ormawa/resimen.png',
+};
+
+/// Cari berkas logo untuk sebuah ormawa. Ormawa baru tanpa logo tetap
+/// memakai ikon pilihan admin.
+String? cariAsetLogo(String id, String nama) {
+  final langsung = asetLogoOrmawa[id];
+  if (langsung != null) return langsung;
+
+  final kunci = nama.toLowerCase();
+  if (kunci.contains('english club')) return 'assets/logo_ormawa/ec.png';
+  return null;
+}
+
 /// Organisasi/UKM/UKK yang bisa diatur admin. Disimpan di Supabase agar
 /// semua perangkat memakai daftar yang sama.
 @immutable
@@ -69,6 +97,8 @@ class Ormawa {
   final String ikonKunci;
 
   IconData get ikon => ikonDariKunci(ikonKunci);
+
+  String? get asetLogo => cariAsetLogo(id, nama);
 
   Map<String, dynamic> kePeta() => {
     'id': id,
@@ -116,6 +146,47 @@ class Ormawa {
   }
 }
 
+/// Menampilkan logo resmi ormawa bila tersedia, atau ikon pilihannya bila
+/// belum ada logo. [ukuran] adalah sisi kotak logo dalam piksel logis.
+class IkonOrmawa extends StatelessWidget {
+  const IkonOrmawa(
+    this.ormawa, {
+    super.key,
+    required this.ukuran,
+    this.warna,
+    this.radius,
+  });
+
+  final Ormawa ormawa;
+  final double ukuran;
+  final Color? warna;
+  final double? radius;
+
+  @override
+  Widget build(BuildContext context) {
+    final aset = ormawa.asetLogo;
+    final ikonCadangan = Icon(
+      ormawa.ikon,
+      size: ukuran * 0.5,
+      color: warna,
+    );
+
+    if (aset == null) return ikonCadangan;
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(radius ?? ukuran * 0.32),
+      child: Image.asset(
+        aset,
+        width: ukuran,
+        height: ukuran,
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.medium,
+        errorBuilder: (_, _, _) => ikonCadangan,
+      ),
+    );
+  }
+}
+
 /// Dipakai bila ada agenda yang ormawanya sudah dihapus.
 Ormawa ormawaCadangan(String id) => Ormawa(
   id: id,
@@ -138,21 +209,21 @@ const List<Ormawa> ormawaBawaan = [
     id: 'bem',
     nama: 'BEM',
     kategori: 'Eksekutif',
-    warna: Color(0xFFEF4444),
+    warna: Color(0xFFFFCF3C),
     ikonKunci: 'bank',
   ),
   Ormawa(
     id: 'hmpsKp',
     nama: 'HMPS KP',
     kategori: 'Prodi',
-    warna: Color(0xFF3B82F6),
+    warna: Color(0xFFC50404),
     ikonKunci: 'school',
   ),
   Ormawa(
     id: 'hmpsMn',
     nama: 'HMPS MN',
     kategori: 'Prodi',
-    warna: Color(0xFF06B6D4),
+    warna: Color(0xFF0A0A87),
     ikonKunci: 'business',
   ),
   Ormawa(
@@ -164,35 +235,35 @@ const List<Ormawa> ormawaBawaan = [
   ),
   Ormawa(
     id: 'ukm2',
-    nama: 'UKM Seni & Musik',
+    nama: 'UKM Musikala',
     kategori: 'UKM',
-    warna: Color(0xFFF59E0B),
+    warna: Color(0xFF6366F1),
     ikonKunci: 'music',
   ),
   Ormawa(
     id: 'ukm3',
-    nama: 'UKM Penalaran & Riset',
+    nama: 'UKM Inteklam',
     kategori: 'UKM',
     warna: Color(0xFF14B8A6),
     ikonKunci: 'science',
   ),
   Ormawa(
     id: 'ukm4',
-    nama: 'UKM Pers Kampus',
+    nama: 'UKM Tari',
     kategori: 'UKM',
     warna: Color(0xFFEC4899),
     ikonKunci: 'news',
   ),
   Ormawa(
     id: 'ukm5',
-    nama: 'UKM Mapala',
+    nama: 'UKM Himalaya',
     kategori: 'UKM',
     warna: Color(0xFF84CC16),
     ikonKunci: 'terrain',
   ),
   Ormawa(
     id: 'ukm6',
-    nama: 'UKM Kerohanian Islam',
+    nama: 'UKM Paduan Suara',
     kategori: 'UKM',
     warna: Color(0xFF22C55E),
     ikonKunci: 'mosque',
@@ -208,14 +279,21 @@ const List<Ormawa> ormawaBawaan = [
     id: 'ukk1',
     nama: 'UKK Pramuka',
     kategori: 'UKK',
-    warna: Color(0xFFD97706),
+    warna: Color(0xFF402504),
     ikonKunci: 'explore',
   ),
   Ormawa(
     id: 'ukk2',
-    nama: 'UKK KSR PMI',
+    nama: 'UKK Resimen Mahasiswa',
     kategori: 'UKK',
-    warna: Color(0xFFF43F5E),
+    warna: Color(0xFFF97316),
     ikonKunci: 'medical',
+  ),
+  Ormawa(
+    id: 'ormawa-1793709126563381',
+    nama: 'UKM English Club',
+    kategori: 'UKM',
+    warna: Color(0xFF3B82F6),
+    ikonKunci: 'groups',
   ),
 ];

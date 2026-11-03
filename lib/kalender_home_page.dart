@@ -6,7 +6,11 @@ import 'package:table_calendar/table_calendar.dart';
 import 'auth_admin.dart';
 import 'dialog_admin.dart';
 import 'dialog_ormawa.dart';
+import 'dialog_sumber_bantuan.dart';
 import 'gaya_iphone.dart';
+import 'helpdesk_chat.dart';
+import 'ikon_helpdesk.dart';
+import 'layanan_bantuan.dart';
 import 'hari_besar.dart';
 import 'kalender_hijriah.dart';
 import 'kalender_tahunan.dart';
@@ -17,6 +21,7 @@ import 'model_ormawa.dart';
 import 'pemilih_warna.dart';
 import 'pengaturan_warna.dart';
 import 'pengingat_h1.dart';
+import 'tentang_aplikasi.dart';
 
 class KalenderHomePage extends StatefulWidget {
   const KalenderHomePage({
@@ -39,6 +44,7 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
 
   final LayananAgenda _layananAgenda = LayananAgenda();
   final LayananOrmawa _layananOrmawa = LayananOrmawa();
+  final LayananBantuan _layananBantuan = LayananBantuan();
   final AuthAdmin _authAdmin = AuthAdmin();
 
   List<Ormawa> _daftarOrmawa = List.of(ormawaBawaan);
@@ -476,6 +482,21 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
               _barisMenuAdmin(
                 ctx,
                 tema,
+                ikon: Icons.menu_book_rounded,
+                judul: 'Kelola Sumber Help Desk',
+                onTap: () {
+                  Navigator.pop(ctx);
+                  tampilkanKelolaSumberBantuan(
+                    context,
+                    tema: _tema,
+                    layanan: _layananBantuan,
+                    sumberAwal: const [],
+                  );
+                },
+              ),
+              _barisMenuAdmin(
+                ctx,
+                tema,
                 ikon: Icons.logout_rounded,
                 judul: 'Keluar Mode Admin',
                 warna: tema.peringatan,
@@ -770,10 +791,11 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
                                     ),
                                   ],
                                 ),
-                                child: Icon(
-                                  org.ikon,
-                                  color: warnaDiAtas(warna),
-                                  size: 20,
+                                child: IkonOrmawa(
+                                  org,
+                                  ukuran: 40,
+                                  radius: 13,
+                                  warna: warnaDiAtas(warna),
                                 ),
                               ),
                               title: Text(
@@ -2008,6 +2030,57 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
         ),
       ),
       bottomNavigationBar: _buildNavigasiBawah(tema),
+      floatingActionButton: _tombolHelpdesk(tema),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+    );
+  }
+
+  Widget _tombolHelpdesk(PengaturanWarna tema) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 2),
+      child: Tooltip(
+        message: 'Help Desk AI',
+        child: TekanSkala(
+          onTap: () {
+            HapticFeedback.lightImpact();
+            tampilkanHelpdesk(
+              context,
+              tema: _tema,
+              modeAdmin: _modeAdmin,
+              daftarOrmawa: _daftarOrmawa,
+              layananBantuan: _layananBantuan,
+            );
+          },
+          skala: 0.9,
+          child: Semantics(
+            button: true,
+            label: 'Buka Help Desk AI',
+            child: SizedBox(
+              width: 56,
+              height: 56,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    width: 54,
+                    height: 54,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          tema.aksen.withValues(alpha: 0.28),
+                          tema.aksen.withValues(alpha: 0),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const IkonHelpdesk(ukuran: 48),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -2875,7 +2948,8 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
             return _pilOrmawa(
               tema: tema,
               label: 'Semua Ormawa',
-              ikon: Icons.grid_view_rounded,
+              ormawa: null,
+              ikonCadangan: Icons.grid_view_rounded,
               warna: tema.aksen,
               terpilih: isAll,
               onTap: () {
@@ -2893,7 +2967,7 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
           return _pilOrmawa(
             tema: tema,
             label: org.nama,
-            ikon: org.ikon,
+            ormawa: org,
             warna: org.warna,
             terpilih: isSelected,
             onTap: () {
@@ -2911,7 +2985,8 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
   Widget _pilOrmawa({
     required PengaturanWarna tema,
     required String label,
-    required IconData ikon,
+    required Ormawa? ormawa,
+    IconData? ikonCadangan,
     required Color warna,
     required bool terpilih,
     required VoidCallback onTap,
@@ -2986,7 +3061,18 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
                         ),
                       ],
               ),
-              child: Icon(ikon, size: 16, color: warnaDiAtas(warna)),
+              child: ormawa == null
+                  ? Icon(
+                      ikonCadangan ?? Icons.groups_rounded,
+                      size: 16,
+                      color: warnaDiAtas(warna),
+                    )
+                  : IkonOrmawa(
+                      ormawa,
+                      ukuran: 30,
+                      radius: 11,
+                      warna: warnaDiAtas(warna),
+                    ),
             ),
             const SizedBox(width: 9),
             Text(
@@ -3055,7 +3141,12 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
                 ),
               ],
             ),
-            child: Icon(ormawa.ikon, color: warnaDiAtas(warna), size: 22),
+            child: IkonOrmawa(
+              ormawa,
+              ukuran: 46,
+              radius: 15,
+              warna: warnaDiAtas(warna),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -3638,10 +3729,11 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
                                         ),
                                       ),
                                     ),
-                                    child: Icon(
-                                      ormawa.ikon,
-                                      size: 18,
-                                      color: warnaTeksOrmawa(
+                                    child: IkonOrmawa(
+                                      ormawa,
+                                      ukuran: 38,
+                                      radius: 12,
+                                      warna: warnaTeksOrmawa(
                                         ormawa.warna,
                                         tema,
                                       ),
@@ -3873,6 +3965,18 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
                           ),
                         ),
                       ),
+                      _barisLembar(
+                        tema,
+                        ikon: Icons.info_outline_rounded,
+                        label: 'Tentang aplikasi',
+                        tooltip: 'Tentang aplikasi',
+                        keterangan: '$pembuatAplikasi • v$versiAplikasi',
+                        warna: tema.aksenTeks,
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          tampilkanTentangAplikasi(context, _tema);
+                        },
+                      ),
                     ],
                   ),
                 ),
@@ -3961,10 +4065,11 @@ class _KalenderHomePageState extends State<KalenderHomePage> {
                             ),
                           ],
                         ),
-                        child: Icon(
-                          ormawa.ikon,
-                          color: warnaDiAtas(warna),
-                          size: 22,
+                        child: IkonOrmawa(
+                          ormawa,
+                          ukuran: 48,
+                          radius: 15,
+                          warna: warnaDiAtas(warna),
                         ),
                       ),
                       const SizedBox(width: 12),

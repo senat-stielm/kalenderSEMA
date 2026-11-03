@@ -95,18 +95,19 @@ grant execute on function public.hapus_ormawa(text, text)
 insert into public.ormawa (id, nama, kategori, warna, ikon, urutan)
 values
   ('senat',  'Senat Mahasiswa',        'Legislatif', 4289222135, 'gavel',    1),
-  ('bem',    'BEM',                    'Eksekutif',  4293870660, 'bank',     2),
-  ('hmpsKp', 'HMPS KP',                'Prodi',      4282090230, 'school',   3),
-  ('hmpsMn', 'HMPS MN',                'Prodi',      4278630100, 'business', 4),
+  ('bem',    'BEM',                    'Eksekutif',  4294954812, 'bank',     2),
+  ('hmpsKp', 'HMPS KP',                'Prodi',      4291101700, 'school',   3),
+  ('hmpsMn', 'HMPS MN',                'Prodi',      4278848135, 'business', 4),
   ('ukm1',   'UKM Olahraga',           'UKM',        4279286145, 'sports',   5),
-  ('ukm2',   'UKM Seni & Musik',       'UKM',        4294286859, 'music',    6),
-  ('ukm3',   'UKM Penalaran & Riset',  'UKM',        4279548070, 'science',  7),
-  ('ukm4',   'UKM Pers Kampus',        'UKM',        4293675161, 'news',     8),
-  ('ukm5',   'UKM Mapala',             'UKM',        4286893078, 'terrain',  9),
-  ('ukm6',   'UKM Kerohanian Islam',   'UKM',        4280468830, 'mosque',   10),
+  ('ukm2',   'UKM Musikala',           'UKM',        4284704497, 'music',    6),
+  ('ukm3',   'UKM Inteklam',           'UKM',        4279548070, 'science',  7),
+  ('ukm4',   'UKM Tari',               'UKM',        4293675161, 'news',     8),
+  ('ukm5',   'UKM Himalaya',           'UKM',        4286893078, 'terrain',  9),
+  ('ukm6',   'UKM Paduan Suara',       'UKM',        4280468830, 'mosque',   10),
   ('ukm7',   'UKM Kewirausahaan',      'UKM',        4284704497, 'store',    11),
-  ('ukk1',   'UKK Pramuka',            'UKK',        4292441862, 'explore',  12),
-  ('ukk2',   'UKK KSR PMI',            'UKK',        4294197086, 'medical',  13)
+  ('ukk1',   'UKK Pramuka',            'UKK',        4282393860, 'explore',  12),
+  ('ukk2',   'UKK Resimen Mahasiswa',  'UKK',        4294538006, 'medical',  13),
+  ('ormawa-1793709126563381', 'UKM English Club', 'UKM', 4282090230, 'groups', 14)
 on conflict (id) do nothing;
 
 -- 5. Segarkan cache API Supabase --------------------------------
